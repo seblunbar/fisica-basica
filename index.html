@@ -51,7 +51,7 @@
         const dir = new THREE.Vector3();
         obj.getWorldPosition(origen);
         obj.getWorldDirection(dir);
-        dir.negate();                 // en A-Frame "al frente" es -Z
+        dir.negate();                // en A-Frame "al frente" es -Z
 
         const inicio = origen.clone().add(dir.clone().multiplyScalar(0.5));
 
@@ -62,11 +62,21 @@
         pelota.setAttribute('position', inicio);
         pelota.setAttribute('dynamic-body', `mass: ${this.data.masa}; shape: sphere; sphereRadius: 0.15`);
 
-        // Cuando el cuerpo físico ya existe, le damos velocidad inicial (v = dir * rapidez)
+        // === AQUÍ ESTÁ EL CAMBIO: Usamos applyImpulse en lugar de set() ===
         pelota.addEventListener('body-loaded', () => {
           const v = this.data.velocidad;
-          pelota.body.velocity.set(dir.x * v, dir.y * v, dir.z * v);
+          const m = this.data.masa;
+
+          // Calculamos el impulso (dirección * velocidad * masa)
+          const impulso = new CANNON.Vec3(dir.x * v * m, dir.y * v * m, dir.z * v * m);
+          
+          // El punto donde se aplica la fuerza (el centro de la pelota)
+          const puntoAplicacion = new CANNON.Vec3(inicio.x, inicio.y, inicio.z);
+          
+          // Aplicamos el impulso físico
+          pelota.body.applyImpulse(impulso, puntoAplicacion);
         });
+        // ===================================================================
 
         this.el.sceneEl.appendChild(pelota);
 
@@ -97,7 +107,7 @@
 <body>
   <!--
     physics: configura el "mundo físico"
-      gravity     → aceleración en Y (m/s²). Prueben -1.62 (Luna) o -24.8 (Júpiter).
+      gravity   → aceleración en Y (m/s²). Prueben -1.62 (Luna) o -24.8 (Júpiter).
       restitution → qué tanto rebotan las cosas (0 = nada, 1 = rebote perfecto).
       friction    → fricción entre superficies.
       debug: true → dibuja en alambre la forma física de cada objeto.
@@ -126,7 +136,7 @@
     <a-box dynamic-body="mass: 1" reporte-choque position="2.5 0.75 -5" width="0.5" height="0.5" depth="0.5" color="#4CC3D9"></a-box>
 
     <!-- Caída libre: dos esferas de distinta masa, misma altura.
-         ¿Cuál llega primero? (Galileo dice: las dos al mismo tiempo) -->
+          ¿Cuál llega primero? (Galileo dice: las dos al mismo tiempo) -->
     <a-sphere dynamic-body="mass: 1"  position="0 6 -6" radius="0.25" color="#EF2D5E"></a-sphere>
     <a-sphere dynamic-body="mass: 20" position="1 6 -6" radius="0.25" color="#5E35B1"></a-sphere>
 
